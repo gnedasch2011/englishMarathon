@@ -23,7 +23,6 @@ use yii\helpers\Inflector;
 use yii\web\Controller; // подключаем Guzzle
 
 
-
 class ParserUniversalController extends Controller
 {
 
@@ -36,7 +35,6 @@ class ParserUniversalController extends Controller
      */
     public function actionIndex()
     {
-
 
         $config = [
 
@@ -66,15 +64,25 @@ class ParserUniversalController extends Controller
         ];
 
 
+      
+        $cache = \Yii::$app->cache;
+
+
         $parser = new ParserUniversal($config);
 
-        $uls =  $parser->getItems();
+        $items = $parser->getItems();
 
-        foreach ($uls as $ul) {
+        $i = 0;
+
+        foreach ($items as $ul) {
             $ul = pq($ul);
-            
-            echo "<pre>"; print_r($ul->text());
-      }
+
+            echo "<pre>";
+            print_r($ul->text());
+
+
+            $i++;
+        }
 
 
     }

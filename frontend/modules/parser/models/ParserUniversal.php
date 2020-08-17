@@ -29,21 +29,35 @@ class ParserUniversal extends Model
 
         $this->config = (object)$config;
         $this->body = phpQuery::newDocumentFileXHTML('https://wikilivres.ru/%D0%9E%D1%80%D1%84%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D1%81%D0%BB%D0%BE%D0%B2%D0%B0%D1%80%D1%8C_%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D1%8F%D0%B7%D1%8B%D0%BA%D0%B0_(%D1%81%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D1%85_%D0%B8%D0%BC%D1%91%D0%BD)');
+
+        return $this;
+
     }
 
     public function getItems()
     {
-        return $this->body->find($this['config']->itemList['listItems']);
+        $selector = ($this['config']->itemList['listItems']) . ' ' . $this['config']->itemList['itemBlock'];
+
+        return $this->body->find($selector);
+
 
     }
 
-
-
-    public function init()
+    public static function getCachePage($config, $parserObject)
     {
-        parent::init();
 
+        $cacheName = $config['host'] . $config['uri'];
+
+        $cache = \Yii::$app->cache;
+
+        $data = $cache->getOrSet($cacheName, function () use ($parserObject) {
+
+            return $parserObject;
+        });
+
+        return $data;
     }
+
 
     /***
      * Инфа с детальной страницы
