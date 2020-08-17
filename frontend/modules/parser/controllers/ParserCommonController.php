@@ -23,12 +23,12 @@ class ParserCommonController extends Controller
     {
 
         $config = [
-            'host' => 'https://residentname.ru/',
-            'uri' => 'regions.html',
+            'host' => 'https://wikilivres.ru/%D0%9E%D1%80%D1%84%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D1%81%D0%BB%D0%BE%D0%B2%D0%B0%D1%80%D1%8C_%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D1%8F%D0%B7%D1%8B%D0%BA%D0%B0_(%D1%81%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D1%85_%D0%B8%D0%BC%D1%91%D0%BD)',
+            'uri' => '',
 
             'forCategory' => [
-                'listItems' => '.table-condensed',
-                'itemBlock' => 'tr',
+                'listItems' => '.mw-parser-output',
+                'itemBlock' => 'li',
             ],
 
             'forDetail' => [
@@ -48,44 +48,21 @@ class ParserCommonController extends Controller
             ],
         ];
 
-        $config = [
-            'host' => 'http://yamaguchi.loc/',
-            'uri' => 'massazhery-dlya-nog',
-
-            'forCategory' => [
-                'listItems' => '.listing-narrow',
-                'itemBlock' => '.product-sm',
-            ],
-
-            'forDetail' => [
-                'name' => 'h1',
-                'model' => '.bread__item:eq(3)',
-                'price' => '.price:eq(0)',
-                'priceAction' => '.old_price',
-                'brand' => '.product_brand a',
-                'imgMain' => [
-                    'href' => '.product_image a'
-                ],
-                'attr' => [
-                    'tableSelector' => '.features',
-                    'rowSelector' => 'li',
-                ],
-
-            ],
-        ];
 
         $parser = new Parser($config);
 
 
-        $resCache = \Yii::$app->cache;
-        $items = $resCache->get('resParser');
+//        $resCache = \Yii::$app->cache;
+//        $items = $resCache->get('resParser');
 
-        echo "<pre>"; print_r($parser->getItems((object)$config));die();
+        echo "<pre>";
+        print_r($parser->getItems((object)$config));
+        die();
 
 
         if (empty($items)) {
             $forCache = $parser->getItemsInCategory("catalog/massazhnye-kresla");
-            $resCache->set('resParser', $forCache);
+//            $resCache->set('resParser', $forCache);
         }
 
 

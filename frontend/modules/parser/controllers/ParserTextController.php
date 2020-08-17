@@ -12,6 +12,7 @@ namespace app\modules\parser\controllers;
 use app\models\residentname\City;
 use app\models\residentname\Country;
 use app\models\residentname\CountryInfoForMask;
+use app\models\rhyme\HagenOrf;
 use app\modules\parser\models\ParserCsv;
 use yii\web\Controller;
 
@@ -20,46 +21,73 @@ class ParserTextController extends Controller
     public function actionIndex()
     {
 
-        $file = 'csv/custom_extraction_all2.csv';
+        $fileName = 'hagen-orf.txt';
 
-        (new ParserCsv())->open($file)->parse(function ($data, ParserCsv $csv) {
+        $rows = file($fileName);
 
-            $country_info_for_mask = new CountryInfoForMask();
+        //Поэтому более корректное определение рифмы:
+        //слуховое совпадение ударного гласного и последующих за ним согласных звуков в окончании слов.
 
-            $country_info_for_mask->country_id = $this->findCountry($data['2-х символьный код']);
 
-            if(!empty($country_info_for_mask->country_id)){
-                $country_info_for_mask->part_of_the_world = $data['Часть света'];
-                $country_info_for_mask->capital = $data['Столица'];
-                $country_info_for_mask->language = $data['Язык'];
-                $country_info_for_mask->country_name = $data['Название страны'];
-                $country_info_for_mask->character_code_2 = $data['2-х символьный код'];
-                $country_info_for_mask->character_code_3 = $data['3-х символьный код'];
-                $country_info_for_mask->iso_code = $data['ISO-код'];
-                $country_info_for_mask->full_name = $data['Полное наименование'];
-                $country_info_for_mask->title_in_english = $data['Название на английском'];
-                $country_info_for_mask->location = $data['Расположение'];
+        //если ударение на последний слог, то берём две последние буквы
 
-                if(!$country_info_for_mask->save()){
-                    echo "<pre>"; print_r($country_info_for_mask);
-                    echo "<pre>"; print_r($country_info_for_mask->errors);die();
-                }
+        $count = 0;
+        $parentId = 1;
+        $mainWord = 1;
+        $id = 1;
 
+        foreach ($rows as $row) {
+
+            $val = mb_convert_encoding($row, 'utf-8', 'cp1251');
+            preg_match_all("/\D/", $val, $matches);
+
+            if (isset($matches[0]) && (count($matches[0])) < 5) {
+                $parentId = $id;
+                $mainWord = 1;
+                continue;
             }
-        });
 
-    }
 
-    public function findCountry($index_name)
-    {
-   
-        $country = Country::find()
-            ->where(['index_name' => trim($index_name)])
-            ->one();
+            $vals = explode('|', trim($val));
+            $vals = array_map(function ($item) {
+                return trim($item);
+            }, $vals);
 
-        if ($country) {
-            return $country->id;
+
+            $pos = mb_strpos($vals[1], '\'');
+            $accent = mb_substr($vals[1], $pos - 1);
+
+
+            $newHagenOrf = new HagenOrf();
+
+            $newHagenOrf->id = $id;
+            $newHagenOrf->parent_id = ($mainWord) ? 0 : $parentId;
+            $newHagenOrf->word = $vals[0];
+            $newHagenOrf->word_with_accent = $vals[1];
+            $newHagenOrf->accent = $accent;
+
+            if (!$newHagenOrf->save()) {
+               echo '<pre>';print_r($newHagenOrf->errors);die();
+            }
+
+            if ($mainWord) {
+                $mainWord = 0;
+            }
+
+            echo "<pre>";
+            print_r($newHagenOrf->attributes);
+
+
+            if ($count == 1000) {
+                die();
+            }
+
+
+            $id++;
+//            $count++;
         }
-        return false;
+
+
     }
+
 }

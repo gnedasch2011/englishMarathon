@@ -22,6 +22,10 @@ class Parser extends Model
 
     public function __construct($config)
     {
+
+        $this->host = $config['host'];
+        $this->uri = $config['uri'];
+
         $this->config = (object)$config;
 
     }
@@ -44,9 +48,11 @@ class Parser extends Model
 
         // отправляем запрос к странице Яндекса
         $res = $client->request('GET', $this->host . $this->uri);
+        
         // получаем данные между открывающим и закрывающим тегами body
         
         $body = $res->getBody();
+      
         
         // подключаем phpQuery
         $document = \phpQuery::newDocumentHTML($body);
