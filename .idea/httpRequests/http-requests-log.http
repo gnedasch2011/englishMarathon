@@ -14,6 +14,12 @@ GET http://parser-universal.loc/parser/parser-universal
 Accept: */*
 Cache-Control: no-cache
 
+###
+
+GET http://parser-universal.loc/parser/parser-universal
+Accept: */*
+Cache-Control: no-cache
+
 <> 2020-08-20T032846.200.html
 
 ###
@@ -383,14 +389,6 @@ Accept: */*
 Cache-Control: no-cache
 
 <> 2020-08-20T031549.200.html
-
-###
-
-GET http://parser-universal.loc/parser/parser-universal
-Accept: */*
-Cache-Control: no-cache
-
-<> 2020-08-20T031545.500.html
 
 ###
 

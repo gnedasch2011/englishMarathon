@@ -70,7 +70,7 @@ class ParserUniversalController extends Controller
         $items = $parser->getItems();
 
         $count = 0;
-        die();
+
 
         foreach ($items as $item) {
             $item = pq($item);
