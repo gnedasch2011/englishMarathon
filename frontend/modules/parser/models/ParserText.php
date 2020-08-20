@@ -9,7 +9,13 @@
 namespace app\modules\parser\models;
 
 
-class ParserText
-{
+use yii\base\Model;
 
+class ParserText extends Model
+{
+    public static function getRows($fileName)
+    {
+        $rows = file($fileName);
+        return $rows;
+    }
 }

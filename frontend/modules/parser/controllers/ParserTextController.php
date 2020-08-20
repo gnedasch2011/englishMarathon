@@ -13,7 +13,10 @@ use app\models\residentname\City;
 use app\models\residentname\Country;
 use app\models\residentname\CountryInfoForMask;
 use app\models\rhyme\HagenOrf;
+use app\models\rhyme\NamesOrf;
+use app\models\rhyme\NounsMorf;
 use app\modules\parser\models\ParserCsv;
+use app\modules\parser\models\ParserText;
 use yii\web\Controller;
 
 class ParserTextController extends Controller
@@ -21,70 +24,118 @@ class ParserTextController extends Controller
     public function actionIndex()
     {
 
-        $fileName = 'hagen-orf.txt';
+        $fileName = 'txt/names.txt';
 
-        $rows = file($fileName);
+        $rows = ParserText::getRows($fileName);
 
-        //Поэтому более корректное определение рифмы:
-        //слуховое совпадение ударного гласного и последующих за ним согласных звуков в окончании слов.
+        $limit = 10000;
+        $offset = 0;
+
+        $count  = 1000000 / 10000;
+
+        for ($i = 0; $i < $count; $i++) {
+            $nounsMorfs = \Yii::$app->db->createCommand('SELECT * FROM nouns_morf limit :limit offset :offset')
+                ->bindValues([
+                        ':limit' => $limit,
+                        ':offset' => $offset,
+                    ]
+                )
+                ->queryAll();
 
 
-        //если ударение на последний слог, то берём две последние буквы
+            foreach ($nounsMorfs as $nounsMorf) {
+                \Yii::$app->db->createCommand()->update('hagen_orf', [
+                    'gender' => $nounsMorf['gender'],
+                    'wcase' => $nounsMorf['wcase']
+                ], ['word' => $nounsMorf['word']])->execute();
 
-        $count = 0;
-        $parentId = 1;
-        $mainWord = 1;
+            }
+
+            $offset = $offset + 10000;
+        }
+
+        die();
+
+
+
+
+        die('end');
+
+        $HagenOrfs = HagenOrf::find()
+            ->limit(100000)
+            ->offset(2000)
+            ->all();
+
+        foreach ($HagenOrfs as $hagenOrf) {
+            $nounsMorf = NounsMorf::find()
+                ->where(['word' => $hagenOrf->word])
+                ->asArray()
+                ->one();
+
+            if ($nounsMorf) {
+                $hagenOrf->gender = $nounsMorf['gender'];
+                $hagenOrf->wcase = $nounsMorf['wcase'];
+                $hagenOrf->save();
+            }
+        }
+
+
+        echo "<pre>";
+        print_r($HagenOrfs);
+        die();
+
         $id = 1;
 
         foreach ($rows as $row) {
+            $ros = 'Селива\'н (Селива\'нович, Селива\'новна)';
 
-            $val = mb_convert_encoding($row, 'utf-8', 'cp1251');
-            preg_match_all("/\D/", $val, $matches);
+            preg_match("/(?P<mainName>.*?)(?P<formsName>\(.*?\))/u", $row, $matches);
 
-            if (isset($matches[0]) && (count($matches[0])) < 5) {
-                $parentId = $id;
-                $mainWord = 1;
-                continue;
+            if (is_array($matches) && empty($matches)) {
+                preg_match("/(?P<mainName>.*)/u", $row, $matches);
             }
 
 
-            $vals = explode('|', trim($val));
-            $vals = array_map(function ($item) {
-                return trim($item);
-            }, $vals);
+            $arrRes['mainName'] = $matches['mainName'] ?? '';
+            $arrRes['formsName'] = $matches['formsName'] ?? '';
+
+            if (!empty($arrRes['mainName'])) {
+                //сделать массив из 3
 
 
-            $pos = mb_strpos($vals[1], '\'');
-            $accent = mb_substr($vals[1], $pos - 1);
+                $pos = mb_strpos($arrRes['mainName'], '\'');
+                $accent = mb_substr($arrRes['mainName'], $pos - 1);
 
+                $NamesOrf = new NamesOrf();
+                $NamesOrf->parent_id = 0;
+                $NamesOrf->word = trim(str_replace('\'', '', $arrRes['mainName']));
+                $NamesOrf->word_with_accent = $arrRes['mainName'];
+                $NamesOrf->accent = $accent;
+                $NamesOrf->save();
 
-            $newHagenOrf = new HagenOrf();
+                $parent_id = $NamesOrf->id;
 
-            $newHagenOrf->id = $id;
-            $newHagenOrf->parent_id = ($mainWord) ? 0 : $parentId;
-            $newHagenOrf->word = $vals[0];
-            $newHagenOrf->word_with_accent = $vals[1];
-            $newHagenOrf->accent = $accent;
-
-            if (!$newHagenOrf->save()) {
-               echo '<pre>';print_r($newHagenOrf->errors);die();
             }
 
-            if ($mainWord) {
-                $mainWord = 0;
+            if (isset($arrRes['formsName']) && !empty($arrRes['formsName'])) {
+
+                $formsName = str_replace(['(', ')'], '', $arrRes['formsName']);
+                $formsNameArr = explode(', ', $formsName);
+
+                foreach ($formsNameArr as $formsName) {
+                    $NamesOrf = new NamesOrf();
+                    $NamesOrf->parent_id = $parent_id;
+
+                    $accent = mb_substr($formsName, $pos - 1);
+
+                    $NamesOrf->word = trim(str_replace('\'', '', $formsName));
+                    $NamesOrf->word_with_accent = $formsName;
+                    $NamesOrf->accent = $accent;
+                    $NamesOrf->save();
+                }
             }
-
-            echo "<pre>";
-            print_r($newHagenOrf->attributes);
-
-
-            if ($count == 1000) {
-                die();
-            }
-
 
             $id++;
-//            $count++;
         }
 
 

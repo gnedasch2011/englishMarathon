@@ -38,12 +38,12 @@ class ParserUniversalController extends Controller
 
         $config = [
 
-            'host' => 'https://wikilivres.ru/',
-            'uri' => '%D0%9E%D1%80%D1%84%D0%BE%D0%B3%D1%80%D0%B0%D1%84%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D1%81%D0%BB%D0%BE%D0%B2%D0%B0%D1%80%D1%8C_%D1%80%D1%83%D1%81%D1%81%D0%BA%D0%BE%D0%B3%D0%BE_%D1%8F%D0%B7%D1%8B%D0%BA%D0%B0_(%D1%81%D0%BF%D0%B8%D1%81%D0%BE%D0%BA_%D0%BB%D0%B8%D1%87%D0%BD%D1%8B%D1%85_%D0%B8%D0%BC%D1%91%D0%BD)',
+            'host' => 'https://ru.wikipedia.org/wiki/Список_стран_по_населению',
+            'uri' => '',
 
-            'itemList' => [
-                'listItems' => '.mw-parser-output',
-                'itemBlock' => 'li',
+            'selectors' => [
+                'listItems' => '.standard',
+                'itemBlock' => 'tr',
             ],
 
             'forDetailPage' => [
@@ -64,24 +64,18 @@ class ParserUniversalController extends Controller
         ];
 
 
-      
-        $cache = \Yii::$app->cache;
 
+      $parser = new ParserUniversal($config);
 
-        $parser = new ParserUniversal($config);
 
         $items = $parser->getItems();
 
-        $i = 0;
-
-        foreach ($items as $ul) {
-            $ul = pq($ul);
+        foreach ($items as $item) {
+            $item = pq($item);
 
             echo "<pre>";
-            print_r($ul->text());
+            print_r($item->htmlOuter());die();
 
-
-            $i++;
         }
 
 
