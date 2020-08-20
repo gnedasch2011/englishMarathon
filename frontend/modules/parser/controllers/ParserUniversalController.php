@@ -16,6 +16,7 @@ use app\models\residentname\Url;
 use app\modules\parser\models\FileHelper;
 use app\modules\parser\models\Parser;
 use app\modules\parser\models\ParserUniversal;
+use app\modules\parser\models\RegexHelper;
 use app\modules\parser\models\SaveItems;
 use phpQuery;
 use GuzzleHttp\Client;
@@ -40,10 +41,10 @@ class ParserUniversalController extends Controller
 
             'host' => 'https://ru.wikipedia.org/wiki/Список_стран_по_населению',
             'uri' => '',
-
+            'cache' => true,
             'selectors' => [
                 'listItems' => '.standard',
-                'itemBlock' => 'tr',
+                'itemBlock' => 'tbody tr',
             ],
 
             'forDetailPage' => [
@@ -64,21 +65,51 @@ class ParserUniversalController extends Controller
         ];
 
 
-
-      $parser = new ParserUniversal($config);
-
+        $parser = new ParserUniversal($config);
 
         $items = $parser->getItems();
 
+        $count = 0;
+        die();
+
         foreach ($items as $item) {
             $item = pq($item);
+            
+            if($count>1){
+                
+                $name = $item->find('td:eq(1)')->text();
+                $name = RegexHelper::getRussianSymbols($name);
 
-            echo "<pre>";
-            print_r($item->htmlOuter());die();
+                $populate = $item->find('td:eq(2)')->text();
+                $populate = RegexHelper::getNumeral($populate);
 
+
+                $percent_populate = $item->find('td:eq(4)')->text();
+                $percent_populate = RegexHelper::getNumeral($percent_populate);
+                
+
+                $country = Country::find()
+                    ->where(['name'=>$name])
+                    ->one();
+
+
+                if(isset($country)){
+                    $country->populate=$populate;
+                    $country->percent_populate=$percent_populate;
+
+                    if(!$country->save()){
+                        echo "<pre>"; print_r($country->errors);die();
+                    }
+
+                }
+
+
+            }
+
+            $count++;
         }
 
-
+        die();
     }
 
 

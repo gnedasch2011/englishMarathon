@@ -33,6 +33,17 @@ class ParserUniversal extends Model
 
         $this->body = phpQuery::newDocument($doc);
 
+        if ($this->config->cache) {
+
+            $cache = \Yii::$app->cache;
+
+            $data = $cache->getOrSet($this->host . $this->uri, function () {
+                return $this;
+            });
+
+            return $data;
+        }
+
         return $this;
 
     }
