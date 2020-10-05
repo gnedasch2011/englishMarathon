@@ -17,128 +17,78 @@ use app\models\rhyme\NamesOrf;
 use app\models\rhyme\NounsMorf;
 use app\modules\parser\models\ParserCsv;
 use app\modules\parser\models\ParserText;
+use yii\debug\models\timeline\Search;
 use yii\web\Controller;
 
 class ParserTextController extends Controller
 {
     public function actionIndex()
     {
+        set_time_limit ( 60000);
 
-        $fileName = 'txt/names.txt';
+        $fileName = 'txt/synonymys.txt';
 
         $rows = ParserText::getRows($fileName);
 
-        $limit = 10000;
-        $offset = 0;
-
-        $count  = 1000000 / 10000;
-
-        for ($i = 0; $i < $count; $i++) {
-            $nounsMorfs = \Yii::$app->db->createCommand('SELECT * FROM nouns_morf limit :limit offset :offset')
-                ->bindValues([
-                        ':limit' => $limit,
-                        ':offset' => $offset,
-                    ]
-                )
-                ->queryAll();
-
-
-            foreach ($nounsMorfs as $nounsMorf) {
-                \Yii::$app->db->createCommand()->update('hagen_orf', [
-                    'gender' => $nounsMorf['gender'],
-                    'wcase' => $nounsMorf['wcase']
-                ], ['word' => $nounsMorf['word']])->execute();
-
-            }
-
-            $offset = $offset + 10000;
-        }
-
-        die();
-
-
-
-
-        die('end');
-
-        $HagenOrfs = HagenOrf::find()
-            ->limit(100000)
-            ->offset(2000)
-            ->all();
-
-        foreach ($HagenOrfs as $hagenOrf) {
-            $nounsMorf = NounsMorf::find()
-                ->where(['word' => $hagenOrf->word])
-                ->asArray()
-                ->one();
-
-            if ($nounsMorf) {
-                $hagenOrf->gender = $nounsMorf['gender'];
-                $hagenOrf->wcase = $nounsMorf['wcase'];
-                $hagenOrf->save();
-            }
-        }
-
-
-        echo "<pre>";
-        print_r($HagenOrfs);
-        die();
-
-        $id = 1;
-
         foreach ($rows as $row) {
-            $ros = 'Селива\'н (Селива\'нович, Селива\'новна)';
+           
+            $arr = explode('|', $row);
+            $mainWord = array_shift($arr);
+            
+            //добавить слово, если его нет, если есть, то вернуть
 
-            preg_match("/(?P<mainName>.*?)(?P<formsName>\(.*?\))/u", $row, $matches);
+            $wordMainId = $this->insertWord('synonyms.synonymys', ['name' => trim($mainWord)]);
 
-            if (is_array($matches) && empty($matches)) {
-                preg_match("/(?P<mainName>.*)/u", $row, $matches);
+            foreach ($arr as $word) {
+
+                $id_relations_synonymys = $this->insertWord('synonyms.synonymys', ['name' => trim($word)]);
+                 print_r($id_relations_synonymys);echo ',';
+                \Yii::$app->db->createCommand()->insert('synonyms.relations', [
+                    'id_synonymys' => $wordMainId,
+                    'id_relations_synonymys' => $id_relations_synonymys,
+                ])->execute();
             }
-
-
-            $arrRes['mainName'] = $matches['mainName'] ?? '';
-            $arrRes['formsName'] = $matches['formsName'] ?? '';
-
-            if (!empty($arrRes['mainName'])) {
-                //сделать массив из 3
-
-
-                $pos = mb_strpos($arrRes['mainName'], '\'');
-                $accent = mb_substr($arrRes['mainName'], $pos - 1);
-
-                $NamesOrf = new NamesOrf();
-                $NamesOrf->parent_id = 0;
-                $NamesOrf->word = trim(str_replace('\'', '', $arrRes['mainName']));
-                $NamesOrf->word_with_accent = $arrRes['mainName'];
-                $NamesOrf->accent = $accent;
-                $NamesOrf->save();
-
-                $parent_id = $NamesOrf->id;
-
-            }
-
-            if (isset($arrRes['formsName']) && !empty($arrRes['formsName'])) {
-
-                $formsName = str_replace(['(', ')'], '', $arrRes['formsName']);
-                $formsNameArr = explode(', ', $formsName);
-
-                foreach ($formsNameArr as $formsName) {
-                    $NamesOrf = new NamesOrf();
-                    $NamesOrf->parent_id = $parent_id;
-
-                    $accent = mb_substr($formsName, $pos - 1);
-
-                    $NamesOrf->word = trim(str_replace('\'', '', $formsName));
-                    $NamesOrf->word_with_accent = $formsName;
-                    $NamesOrf->accent = $accent;
-                    $NamesOrf->save();
-                }
-            }
-
-            $id++;
         }
 
+        die('ok');
+    }
 
+
+    public function findRow($word, $dataBaseWithTable, $field)
+    {
+        $res = [];
+
+        $res = \Yii::$app->db->createCommand('SELECT * FROM ' . $dataBaseWithTable . ' where ' . $field . ' = :' . $field)
+            ->bindValues([
+                    ':' . $field => trim($word),
+                ]
+            )
+            ->queryOne();
+
+        return $res;
+    }
+
+    /**
+     * @param $dataBaseWithTable
+     * @param $fieldValue array['name'=>'maks']
+     * @return mixed|string
+     * @throws \yii\db\Exception
+     */
+    public function insertWord($dataBaseWithTable, $fieldValue)
+    {
+
+        $findWord = $this->findRow(trim(array_values($fieldValue)[0]), $dataBaseWithTable, trim(array_keys($fieldValue)[0]));
+
+
+        if ($findWord) {
+            return $findWord['id'];
+        }
+
+        \Yii::$app->db->createCommand()->insert($dataBaseWithTable, $fieldValue)->execute();
+
+        $lastId = \Yii::$app->db->getLastInsertID();
+
+        return $lastId;
     }
 
 }

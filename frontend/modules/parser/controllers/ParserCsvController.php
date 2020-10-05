@@ -20,39 +20,39 @@ class ParserCsvController extends Controller
     public function actionIndex()
     {
 
-        $file = 'csv/custom_extraction_all2.csv';
+        $file = 'csv/proverbs/categories2.csv';
+        $delimetr = "\t";
+        $delimetr = "	";
 
-        (new ParserCsv())->open($file)->parse(function ($data, ParserCsv $csv) {
+        (new ParserCsv())->open($file, true, $delimetr)->parse($delimetr, function ($data, ParserCsv $csv, $id) {
 
-            $country_info_for_mask = new CountryInfoForMask();
+            $data['id'] = $id;
+//
+//            \Yii::$app->db->createCommand()->insert('proverbs.category', [
+//                'id' => $data['id'],
+//                'name' => $data['name'],
+//            ])->execute();
+//
+//
+//            if (isset($data['cat_ids'])) {
+//                foreach (explode(',', $data['cat_ids']) as $catId) {
+//                    \Yii::$app->db->createCommand()->insert('proverbs.proverbs_category', [
+//                        'category_id' => $catId,
+//                        'proverbs_id' => $data['id'],
+//                    ])->execute();
+//                }
+//            }
 
-            $country_info_for_mask->country_id = $this->findCountry($data['2-х символьный код']);
 
-            if(!empty($country_info_for_mask->country_id)){
-                $country_info_for_mask->part_of_the_world = $data['Часть света'];
-                $country_info_for_mask->capital = $data['Столица'];
-                $country_info_for_mask->language = $data['Язык'];
-                $country_info_for_mask->country_name = $data['Название страны'];
-                $country_info_for_mask->character_code_2 = $data['2-х символьный код'];
-                $country_info_for_mask->character_code_3 = $data['3-х символьный код'];
-                $country_info_for_mask->iso_code = $data['ISO-код'];
-                $country_info_for_mask->full_name = $data['Полное наименование'];
-                $country_info_for_mask->title_in_english = $data['Название на английском'];
-                $country_info_for_mask->location = $data['Расположение'];
-
-                if(!$country_info_for_mask->save()){
-                    echo "<pre>"; print_r($country_info_for_mask);
-                    echo "<pre>"; print_r($country_info_for_mask->errors);die();
-                }
-
-            }
         });
+
+        die('ok');
 
     }
 
     public function findCountry($index_name)
     {
-   
+
         $country = Country::find()
             ->where(['index_name' => trim($index_name)])
             ->one();

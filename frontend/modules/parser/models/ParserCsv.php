@@ -27,7 +27,7 @@ class ParserCsv extends Model
      * @return $this
      * @throws \Exception
      */
-    public function open($file, $header = true)
+    public function open($file, $header = true, $delimetr)
     {
         $this->handle = fopen($file, 'r');
         if (!$this->handle) {
@@ -35,7 +35,7 @@ class ParserCsv extends Model
         }
 
         if ($header) {
-            $this->header = fgetcsv($this->handle);
+            $this->header = fgetcsv($this->handle, 10000, $delimetr);
         }
         return $this;
     }
@@ -43,21 +43,30 @@ class ParserCsv extends Model
     /**
      * Разбирает файл, передавая данные из файла
      * в коллбэк функцию
-     *
      */
-    public function parse(callable $callable)
+    public function parse($delimetr, callable $callable)
     {
 
         if (!$this->handle) {
             throw new Exception('Файл не открыт!');
         }
-        while (($data = fgetcsv($this->handle)) !== false) { 
+
+        $i = 1;
+
+        while (($data = fgetcsv($this->handle, 10000, $delimetr)) !== false) {
             if ($this->header) {
+
+                if (count($this->header) != count($data)) {
+                    echo "<pre>";
+                    print_r($data);
+                    die();
+                }
+
                 $data = array_combine($this->header, $data);
             }
             // вызываем коллбэк, первый аргумент данные, второй ссылка на объект
-           
-            $callable($data, $this);
+            $callable($data, $this, $i);
+            $i++;
         }
     }
 
